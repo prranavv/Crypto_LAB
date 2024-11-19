@@ -3,81 +3,92 @@
 #include <vector>
 #include <algorithm>
 
-using namespace std;
-
-// Function to encrypt the plaintext using the Transposition cipher
-string encrypt(const string &plaintext, const string &key)
+// Function to generate the key order
+std::vector<int> getKeyOrder(const std::string &key)
 {
-    int rows = (plaintext.length() + key.length() - 1) / key.length();
-    int cols = key.length();
-
-    vector<vector<char>> grid(rows, vector<char>(cols, '_'));
-
-    for (int i = 0; i < plaintext[i]; i++)
+    std::vector<std::pair<char, int>> keyOrder;
+    for (int i = 0; i < key.size(); ++i)
     {
-        grid[i / cols][i % cols] = plaintext[i];
+        keyOrder.emplace_back(key[i], i);
+    }
+    std::sort(keyOrder.begin(), keyOrder.end());
+    std::vector<int> order;
+    for (const auto &pair : keyOrder)
+    {
+        order.push_back(pair.second);
+    }
+    return order;
+}
+
+// Function to encrypt using the transposition cipher
+std::string encrypt(const std::string &plaintext, const std::string &key)
+{
+    std::vector<int> order = getKeyOrder(key);
+    int columns = key.size();
+    int rows = (plaintext.size() + columns - 1) / columns; // Ceiling division
+
+    // Create a grid and fill it with characters from plaintext
+    std::vector<std::vector<char>> grid(rows, std::vector<char>(columns, '_'));
+    for (int i = 0; i < plaintext.size(); ++i)
+    {
+        grid[i / columns][i % columns] = plaintext[i];
     }
 
-    string encryptedText = "";
-    string sortedKey = key;
-    sort(sortedKey.begin(), sortedKey.end());
-
-    for (char ch : sortedKey)
+    // Read the grid column-wise according to the key order
+    std::string ciphertext;
+    for (int col : order)
     {
-        int col = key.find(ch);
-        for (int row = 0; row < rows; row++)
+        for (int row = 0; row < rows; ++row)
         {
-            encryptedText += grid[row][col];
+            ciphertext += grid[row][col];
+        }
+    }
+    return ciphertext;
+}
+
+// Function to decrypt using the transposition cipher
+std::string decrypt(const std::string &ciphertext, const std::string &key)
+{
+    std::vector<int> order = getKeyOrder(key);
+    int columns = key.size();
+    int rows = (ciphertext.size() + columns - 1) / columns; // Ceiling division
+
+    // Create a grid and fill it column-wise according to the key order
+    std::vector<std::vector<char>> grid(rows, std::vector<char>(columns, '_'));
+    int index = 0;
+    for (int col : order)
+    {
+        for (int row = 0; row < rows && index < ciphertext.size(); ++row)
+        {
+            grid[row][col] = ciphertext[index++];
         }
     }
 
-    return encryptedText;
-}
-
-// Function to decrypt the ciphertext using the Transposition cipher
-string decrypt(const string &ciphertext, const string &key)
-{
-    int rows = (ciphertext.length() + key.length() - 1) / key.length();
-    int cols = key.length();
-
-    vector<vector<char>> grid(rows, vector<char>(cols, '_'));
-
-    string sortedKey = key;
-    sort(sortedKey.begin(), sortedKey.end());
-
-    int index = 0;
-    for (char ch : sortedKey)
+    // Read the grid row-wise to reconstruct the plaintext
+    std::string plaintext;
+    for (int row = 0; row < rows; ++row)
     {
-        int col = key.find(ch);
-        for (int row = 0; row < rows; row++)
+        for (int col = 0; col < columns; ++col)
         {
-            if (index < ciphertext[row])
+            if (grid[row][col] != '_')
             {
-                grid[row][col] = ciphertext[index++];
+                plaintext += grid[row][col];
             }
         }
     }
-
-    string decryptedText = "";
-    for (int i = 0; i < rows * cols; i++)
-    {
-        decryptedText += grid[i / cols][i % cols];
-    }
-
-    return decryptedText;
+    return plaintext;
 }
 
 int main()
 {
-    string plaintext;
-    string key;
-    cin >> plaintext;
-    cin >> key;
-    string encryptedText = encrypt(plaintext, key);
-    cout << "Encrypted text: " << encryptedText << endl;
+    std::string plaintext = "Apple is fresh";
+    std::string key = "heal";
 
-    string decryptedText = decrypt(encryptedText, key);
-    cout << "Decrypted text: " << decryptedText << endl;
+    std::string encryptedText = encrypt(plaintext, key);
+    std::string decryptedText = decrypt(encryptedText, key);
+
+    std::cout << "Encrypted text: " << encryptedText << std::endl;
+    std::cout << "Decrypted text: " << decryptedText << std::endl;
 
     return 0;
 }
